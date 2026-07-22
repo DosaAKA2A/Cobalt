@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cobalt</title>
+<style>
+  :root { --bg:#0a0a0c; --text:#ececef; --muted:#8b8d94; --line:#232327; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:radial-gradient(120% 70% at 50% -10%, #141417 0%, #0a0a0d 60%); color:var(--text);
+    font-family:-apple-system, "Segoe UI", Roboto, system-ui, sans-serif; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:12vh 20px 40px; }
+  .logo { width:56px; height:56px; margin-bottom:18px; }
+  .clock { font-size:54px; font-weight:200; letter-spacing:1px; }
+  .greet { color:var(--muted); font-size:13px; margin:6px 0 28px; }
+  form { width:100%; max-width:420px; display:flex; align-items:center; gap:10px;
+    height:50px; padding:0 18px; border-radius:999px; background:rgba(14,14,17,.85);
+    border:1px solid #26262b; margin-bottom:34px; }
+  form svg { width:18px; height:18px; color:var(--muted); flex-shrink:0; }
+  input { flex:1; height:100%; border:none; outline:none; background:transparent; color:var(--text); font-size:16px; }
+  input::placeholder { color:#5c5e64; }
+  .tiles { width:100%; max-width:420px; display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  a.tile { display:flex; flex-direction:column; align-items:center; gap:8px; text-decoration:none; }
+  .sq { width:100%; aspect-ratio:1; border-radius:20px; background:linear-gradient(140deg,#1e1e23,#141418);
+    border:1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; }
+  .sq svg { width:44%; height:44%; color:#e4e6ea; }
+  .name { font-size:11px; color:var(--muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style>
+</head>
+<body>
+  <svg class="logo" viewBox="0 0 876.27 874.83">
+    <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b9aae6"/><stop offset="50%" stop-color="#a4d9c2"/><stop offset="100%" stop-color="#e6a9b4"/>
+    </linearGradient></defs>
+    <path fill="url(#g)" fill-rule="evenodd" d="M1.08,582.41L0,302.19C-.65,131.46,130.07-1.65,303,.02l306.38,2.95c152.34,1.47,267.72,141.24,266.88,290.55l-1.72,307.39c-.86,154.14-136.95,274.21-288.33,273.92l-299.69-.58C128.09,873.93,1.69,742.98,1.08,582.41ZM670.98,820.63c85.92-7.81,145.77-71.41,151.41-157.79,5.07-77.74-16.57-152.57-53.84-222.68-82.97-156.09-213.93-281-375.71-352.86-56.61-25.15-115.91-37.9-176.04-34.9C124.83,56.97,57.47,124.72,53.55,217.62c-11.51,273.02,343.75,627.9,617.43,603.01Z"/>
+  </svg>
+  <div class="clock" id="clock">00:00</div>
+  <div class="greet" id="greet">Listo para navegar</div>
+  <form action="https://www.google.com/search" method="GET">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2"/></svg>
+    <input name="q" type="text" placeholder="Buscar en Google" autocomplete="off" autocapitalize="off" />
+  </form>
+  <div class="tiles">
+    <a class="tile" href="https://m.youtube.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></span><span class="name">YouTube</span></a>
+    <a class="tile" href="https://www.twitch.tv"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg></span><span class="name">Twitch</span></a>
+    <a class="tile" href="https://web.whatsapp.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></span><span class="name">WhatsApp</span></a>
+    <a class="tile" href="https://github.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></span><span class="name">GitHub</span></a>
+    <a class="tile" href="https://www.instagram.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.03.084c-1.277.06-2.149.264-2.911.563-.789.308-1.458.72-2.123 1.388C1.33 2.7.918 3.369.61 4.157.312 4.92.108 5.792.048 7.07.024 7.827.024 8.234.024 12s0 4.174.024 4.93c.06 1.278.264 2.15.563 2.912.308.788.72 1.457 1.388 2.122.665.665 1.334 1.078 2.122 1.386.762.299 1.634.503 2.911.563.757.024 1.164.024 4.93.024s4.174 0 4.93-.024c1.278-.06 2.15-.264 2.912-.563.788-.308 1.457-.721 2.122-1.386.665-.665 1.078-1.334 1.386-2.122.299-.762.503-1.634.563-2.912.024-.756.024-1.163.024-4.93s0-4.173-.024-4.93c-.06-1.278-.264-2.15-.563-2.912-.308-.788-.721-1.457-1.386-2.122C21.3 1.335 20.63.923 19.843.615c-.762-.3-1.634-.504-2.912-.563C16.174.024 15.767.024 12 .024S7.827.024 7.07.048M12 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324M12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8m6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881"/></svg></span><span class="name">Instagram</span></a>
+    <a class="tile" href="https://www.reddit.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg></span><span class="name">Reddit</span></a>
+    <a class="tile" href="https://mail.google.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg></span><span class="name">Gmail</span></a>
+    <a class="tile" href="https://www.crunchyroll.com"><span class="sq"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.909 13.436C2.914 7.61 7.642 2.893 13.468 2.898c5.576.005 10.137 4.339 10.51 9.819q.021-.351.022-.706C24.007 5.385 18.64.006 12.012 0S.007 5.36 0 11.988 5.36 23.994 11.988 24q.412 0 .815-.027c-5.526-.338-9.9-4.928-9.894-10.538Zm16.284.155a4.1 4.1 0 0 1-4.095-4.103 4.1 4.1 0 0 1 2.712-3.855 8.95 8.95 0 0 0-4.187-1.037 9.007 9.007 0 1 0 8.997 9.016q-.001-.847-.15-1.651a4.1 4.1 0 0 1-3.278 1.63Z"/></svg></span><span class="name">Crunchyroll</span></a>
+  </div>
+  <script>
+    function tick(){var d=new Date();document.getElementById('clock').textContent=d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});var h=d.getHours();document.getElementById('greet').textContent=(h<6?'Buenas noches':h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches')+' — listo para navegar';}
+    tick();setInterval(tick,10000);
+  </script>
+</body>
+</html>

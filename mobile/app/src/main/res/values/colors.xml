@@ -1,0 +1,10 @@
+<resources>
+    <color name="bg">#FF0A0A0C</color>
+    <color name="bg2">#FF101013</color>
+    <color name="bg3">#FF16161A</color>
+    <color name="line">#FF232327</color>
+    <color name="text">#FFECECEF</color>
+    <color name="muted">#FF8B8D94</color>
+    <color name="accent">#FFE8E9EC</color>
+    <color name="danger">#FFE5484D</color>
+</resources>
