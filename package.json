@@ -1,9 +1,9 @@
 {
   "name": "cobalt-browser",
   "productName": "Cobalt",
-  "version": "1.0.3",
-  "description": "Cobalt — navegador ligero de Estudio de Iris. Motor Chromium, bajo consumo y aceleración por GPU.",
-  "author": "Estudio de Iris",
+  "version": "1.0.4",
+  "description": "Cobalt — navegador ligero de Iris Studio. Motor Chromium, bajo consumo y aceleración por GPU.",
+  "author": "Iris Studio",
   "license": "MIT",
   "main": "src/main.js",
   "repository": {
