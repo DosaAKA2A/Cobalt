@@ -18,7 +18,7 @@ const els = {};
   'nav-shield', 'nav-star', 'nav-menu', 'menu-pop', 'bookmarks-bar', 'content', 'hub', 'widget-grid',
   'hub-edit', 'hub-customize', 'widget-palette', 'palette-list', 'customize-panel', 'bg-presets',
   'wp-file', 'tile-styles', 'dial-modal', 'dial-name', 'dial-url', 'opt-powersaver', 'opt-gpu',
-  'opt-agent', 'opt-smartsearch', 'opt-xsensitive', 'shield-pop', 'adblock-toggle', 'adblock-count', 'adblock-site', 'adblock-list',
+  'opt-agent', 'opt-smartsearch', 'opt-xsensitive', 'opt-passkeys', 'shield-pop', 'adblock-toggle', 'adblock-count', 'adblock-site', 'adblock-list',
   'media-panel', 'mp-title', 'mp-grid', 'mp-all', 'sb-home', 'sb-sites', 'sb-claude', 'sb-rat',
   'sb-media', 'sb-downloads', 'sb-bookmarks', 'sb-res', 'sb-settings', 'res-pop', 'res-list',
   'res-label', 'private-badge', 'toast', 'suggest', 'web-panel', 'wpz-title', 'wpz-host', 'wpz-grip',
@@ -559,15 +559,24 @@ function closeRightPanels() { els.mediaPanel.classList.add('hidden'); els.sbMedi
 const GRABBABLE = ['youtube.com', 'youtu.be', 'twitter.com', 'x.com', 'tiktok.com', 'instagram.com', 'facebook.com', 'twitch.tv', 'vimeo.com', 'dailymotion.com', 'reddit.com'];
 const PLAT_MAP = { 'youtube.com': ['YouTube', 'youtube'], 'youtu.be': ['YouTube', 'youtube'], 'instagram.com': ['Instagram', 'instagram'], 'twitter.com': ['X', 'x'], 'x.com': ['X', 'x'], 'tiktok.com': ['TikTok', null], 'twitch.tv': ['Twitch', 'twitch'], 'facebook.com': ['Facebook', null], 'vimeo.com': ['Vimeo', null], 'reddit.com': ['Reddit', 'reddit'], 'dailymotion.com': ['Dailymotion', null] };
 function platOf(url) { const h = hostOf(url); for (const d in PLAT_MAP) if (h === d || h.endsWith('.' + d)) return PLAT_MAP[d]; return null; }
+// Extrae la URL canónica del vídeo actual (p. ej. en el feed de TikTok la barra
+// muestra /foryou, pero el canonical apunta al vídeo concreto).
+function resolveMediaUrl() {
+  const ok = (u) => u && /\/(video|photo|status|watch|reel|shorts|clip|p)\//.test(u) ? u : null;
+  const c = document.querySelector('link[rel="canonical"]'); if (ok(c && c.href)) return c.href;
+  const og = document.querySelector('meta[property="og:url"]'); if (ok(og && og.content)) return og.content;
+  return location.href;
+}
 els.sbRat.addEventListener('click', async (e) => {
   e.stopPropagation();
   const open = els.ratPop.classList.contains('hidden'); els.ratPop.classList.toggle('hidden'); els.sbRat.classList.toggle('open', open);
   if (!open) return;
-  const tab = activeTab(); const url = tab?.kind === 'web' ? tab.url : '';
+  const tab = activeTab(); let url = tab?.kind === 'web' ? tab.url : '';
+  if (tab?.kind === 'web' && tab.webview) { try { const real = await tab.webview.executeJavaScript(`(${resolveMediaUrl.toString()})()`); if (real) url = real; } catch {} }
   els.ratUrl.value = url; updateRatPlat();
   els.ratXcheck.checked = !!settings.xRevealSensitive;
   const ok = await window.cobalt.ytAvailable();
-  els.ratNote.textContent = ok ? 'Se guarda en tu carpeta Descargas. TikTok se descarga sin marca de agua.' : 'Faltan yt-dlp/ffmpeg en resources/bin.';
+  els.ratNote.textContent = ok ? 'Se guarda en Descargas. En TikTok abre un vídeo concreto; se baja sin marca de agua.' : 'Faltan yt-dlp/ffmpeg en resources/bin.';
 });
 function updateRatPlat() {
   const url = els.ratUrl.value.trim(); const p = platOf(url);
@@ -716,6 +725,7 @@ els.menuPop.addEventListener('click', (e) => {
 });
 els.optSmartsearch.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ smartSearch: els.optSmartsearch.checked }); });
 els.optXsensitive.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ xRevealSensitive: els.optXsensitive.checked }); els.ratXcheck.checked = els.optXsensitive.checked; const tab = activeTab(); if (tab?.kind === 'web' && /(^|\.)(x\.com|twitter\.com)$/.test(hostOf(tab.url))) tab.webview.reload(); });
+els.optPasskeys.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ blockPasskeys: els.optPasskeys.checked }); toast(els.optPasskeys.checked ? 'Claves de acceso bloqueadas (recarga o reinicia)' : 'Claves de acceso permitidas (reinicia Cobalt)'); activeTab()?.webview?.reload(); });
 els.optPowersaver.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ powerSaver: els.optPowersaver.checked }); });
 els.optGpu.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ hardwareAcceleration: els.optGpu.checked }); window.cobalt.restart(); });
 els.optAgent.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ agentMode: els.optAgent.checked }); window.cobalt.restart(); });
@@ -765,7 +775,7 @@ window.cobalt.onOpenUrl((url) => createTab(url));
 (async function init() {
   settings = await window.cobalt.getSettings();
   els.optPowersaver.checked = settings.powerSaver; els.optGpu.checked = settings.hardwareAcceleration; els.optAgent.checked = !!settings.agentMode;
-  els.optSmartsearch.checked = settings.smartSearch !== false; els.optXsensitive.checked = !!settings.xRevealSensitive;
+  els.optSmartsearch.checked = settings.smartSearch !== false; els.optXsensitive.checked = !!settings.xRevealSensitive; els.optPasskeys.checked = settings.blockPasskeys !== false;
   const ab = await window.cobalt.adblockGet(); els.navShield.classList.toggle('off', !ab.enabled);
   if (IS_PRIVATE) { els.privateBadge.classList.remove('hidden'); els.privateBadge.innerHTML = window.icon('eye-slash') + '<span>Privado</span>'; }
   const savedW = store.get('cobalt.panelW', null); if (savedW) document.documentElement.style.setProperty('--panel-w', savedW);

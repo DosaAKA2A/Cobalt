@@ -27,8 +27,25 @@ const DEFAULT_SETTINGS = {
   adblockWhitelist: [],
   agentMode: false,
   smartSearch: true,        // autocompletado inteligente de la barra
-  xRevealSensitive: false   // mostrar contenido sensible en X/Twitter
+  xRevealSensitive: false,  // mostrar contenido sensible en X/Twitter
+  blockPasskeys: true       // evita el prompt de Windows Hello (claves de acceso)
 };
+
+// Registra un autenticador virtual (vía CDP interno) para que las peticiones
+// WebAuthn no invoquen Windows Hello. Método estándar de Playwright/Puppeteer.
+function suppressWebAuthn(contents) {
+  // Con el modo agente activo, el depurador lo usa el agente externo: no atacamos aquí.
+  if (!settings.blockPasskeys || settings.agentMode) return;
+  try {
+    if (!contents.debugger.isAttached()) contents.debugger.attach('1.3');
+  } catch { return; }
+  contents.debugger.sendCommand('WebAuthn.enable')
+    .then(() => contents.debugger.sendCommand('WebAuthn.addVirtualAuthenticator', {
+      options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true }
+    }))
+    .then((r) => console.log('[Cobalt] Autenticador virtual registrado (Windows Hello desactivado):', r && r.authenticatorId))
+    .catch((e) => console.log('[Cobalt] WebAuthn suppress error:', e.message));
+}
 
 // ---------- Scripts inyectados en las páginas ----------
 // Salta anuncios de YouTube sin bloquear el vídeo (rápido, self-sostenido en SPA)
@@ -278,6 +295,7 @@ function createWindow(isPrivate = false) {
 
 app.on('web-contents-created', (_event, contents) => {
   if (contents.getType() === 'webview') {
+    suppressWebAuthn(contents);
     contents.setWindowOpenHandler(({ url }) => {
       if (url.startsWith('http:') || url.startsWith('https:')) {
         contents.hostWebContents?.send('tab:open-url', url);
