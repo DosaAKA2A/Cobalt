@@ -559,12 +559,31 @@ function closeRightPanels() { els.mediaPanel.classList.add('hidden'); els.sbMedi
 const GRABBABLE = ['youtube.com', 'youtu.be', 'twitter.com', 'x.com', 'tiktok.com', 'instagram.com', 'facebook.com', 'twitch.tv', 'vimeo.com', 'dailymotion.com', 'reddit.com'];
 const PLAT_MAP = { 'youtube.com': ['YouTube', 'youtube'], 'youtu.be': ['YouTube', 'youtube'], 'instagram.com': ['Instagram', 'instagram'], 'twitter.com': ['X', 'x'], 'x.com': ['X', 'x'], 'tiktok.com': ['TikTok', null], 'twitch.tv': ['Twitch', 'twitch'], 'facebook.com': ['Facebook', null], 'vimeo.com': ['Vimeo', null], 'reddit.com': ['Reddit', 'reddit'], 'dailymotion.com': ['Dailymotion', null] };
 function platOf(url) { const h = hostOf(url); for (const d in PLAT_MAP) if (h === d || h.endsWith('.' + d)) return PLAT_MAP[d]; return null; }
-// Extrae la URL canónica del vídeo actual (p. ej. en el feed de TikTok la barra
-// muestra /foryou, pero el canonical apunta al vídeo concreto).
+// Extrae la URL del vídeo que se está viendo. En el feed de TikTok (/foryou) la
+// barra no cambia, así que buscamos el vídeo concreto por varias vías.
 function resolveMediaUrl() {
-  const ok = (u) => u && /\/(video|photo|status|watch|reel|shorts|clip|p)\//.test(u) ? u : null;
+  const RX = /\/(video|photo|status|watch|reel|shorts|clip|p)\/|youtu\.be\//;
+  const ok = (u) => u && RX.test(u) ? u : null;
+  // 1. Si la propia URL ya es de un vídeo, úsala
+  if (ok(location.href)) return location.href;
+  // 2. canonical / og:url (páginas de vídeo directas)
   const c = document.querySelector('link[rel="canonical"]'); if (ok(c && c.href)) return c.href;
   const og = document.querySelector('meta[property="og:url"]'); if (ok(og && og.content)) return og.content;
+  // 3. Feeds (TikTok FYP, etc.): el enlace a /video/ más centrado en el viewport
+  const cy = window.innerHeight / 2;
+  let best = null, bestD = Infinity;
+  document.querySelectorAll('a[href*="/video/"], a[href*="/status/"], a[href*="/reel/"]').forEach((a) => {
+    if (!ok(a.href)) return;
+    const r = a.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight || r.width < 30 || r.height < 30) return;
+    const d = Math.abs((r.top + r.bottom) / 2 - cy);
+    if (d < bestD) { bestD = d; best = a.href; }
+  });
+  if (best) return best;
+  // 4. Último recurso: el vídeo en reproducción → ancestro con enlace a /video/
+  const vids = [...document.querySelectorAll('video')];
+  const playing = vids.find((v) => !v.paused && v.currentTime > 0) || vids[0];
+  if (playing) { let el = playing; for (let i = 0; i < 10 && el; i++, el = el.parentElement) { const a = el.querySelector && el.querySelector('a[href*="/video/"], a[href*="/status/"]'); if (a && ok(a.href)) return a.href; } }
   return location.href;
 }
 els.sbRat.addEventListener('click', async (e) => {
@@ -591,7 +610,9 @@ function updateRatPlat() {
   // Toggle de sensibilidad solo en X
   const onX = p && p[0] === 'X' && onSite;
   els.ratXtoggle.classList.toggle('hidden', !onX);
-  els.ratPlat.innerHTML = p ? `Plataforma: <b>${p[0]}</b>` : (url ? 'Se intentará con yt-dlp.' : '');
+  const looksVideo = /\/(video|photo|status|watch|reel|shorts|clip|p)\/|youtu\.be\//.test(url);
+  if (p && !looksVideo) els.ratPlat.innerHTML = `<b style="color:var(--danger)">Abre un vídeo concreto</b> o pega su enlace (en el feed no se detecta).`;
+  else els.ratPlat.innerHTML = p ? `Plataforma: <b>${p[0]}</b>` : (url ? 'Se intentará con yt-dlp.' : '');
 }
 els.ratUrl.addEventListener('input', updateRatPlat);
 els.ratXcheck.addEventListener('change', async () => { settings = await window.cobalt.setSettings({ xRevealSensitive: els.ratXcheck.checked }); els.optXsensitive.checked = els.ratXcheck.checked; const tab = activeTab(); if (tab?.kind === 'web' && /(^|\.)(x\.com|twitter\.com)$/.test(hostOf(tab.url))) tab.webview.reload(); toast(els.ratXcheck.checked ? 'Contenido sensible visible en X' : 'Sensibilidad de X restaurada'); });
