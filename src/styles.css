@@ -67,16 +67,12 @@ button { font-family: inherit; }
 .tab.group-tab .gt-caret { display: flex; color: #9a7fd0; flex-shrink: 0; }
 .tab.group-tab .gt-caret svg { width: 12px; height: 12px; }
 .tab.group-tab .t-title { color: #d3c1ff; }
-/* Flyout que despliega los canales del grupo */
-.loot-flyout { position: fixed; z-index: 200; min-width: 240px; max-width: 340px; background: var(--bg-3); border: 1px solid rgba(145,112,214,.3); border-radius: 10px; padding: 5px; box-shadow: 0 14px 36px rgba(0,0,0,.55); animation: perm-in .12s ease both; }
-.lf-row { display: flex; align-items: center; gap: 6px; padding: 6px 6px; border-radius: 7px; }
-.lf-row:hover { background: var(--bg-2); }
-.lf-row.active { background: rgba(140,105,215,.14); }
-.lf-name { flex: 1; min-width: 0; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; color: var(--text); }
-.lf-btn { border: none; background: transparent; color: var(--text-dim); cursor: pointer; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.lf-btn:hover { background: #2a2a30; color: var(--text); }
-.lf-btn svg { width: 14px; height: 14px; }
-.lf-btn.on { color: #b98cff; }
+.tab.group-tab.open { background: rgba(140,105,215,.16); }
+/* Mini-pestañas del grupo AutoLoot al desplegarse (a la derecha de la cabecera) */
+.tab.mini { max-width: 150px; background: rgba(120,90,190,.06); border: 1px solid rgba(145,112,214,.22); animation: loot-slide .18s cubic-bezier(.2,.8,.3,1) both; }
+.tab.mini.active { background: rgba(140,105,215,.2); border-color: rgba(145,112,214,.5); }
+.tab.mini .t-title { font-size: 12px; }
+@keyframes loot-slide { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
 
 /* Panel Loot */
 #loot-list { flex: 1; overflow-y: auto; padding: 6px 10px 14px; }

@@ -85,12 +85,30 @@ if (/(^|\.)twitch\.tv$/.test(location.hostname)) {
       });
     } catch (e) { /* nada */ }
   }
-  function setLowRes() { try { localStorage.setItem('video-quality', JSON.stringify({ default: '160p30' })); } catch (e) { /* nada */ } }
+  function setQuality(q) { try { localStorage.setItem('video-quality', JSON.stringify({ default: q })); } catch (e) { /* nada */ } }
+  // Baja ESTA pestaña a la mínima y, tras cargar el reproductor, restaura el valor
+  // global a "auto" para que las NUEVAS pestañas de Twitch NO hereden la baja resolución.
+  function lowResThisTabOnly() { setQuality('160p30'); setTimeout(function () { setQuality('auto'); }, 4000); }
+  let obs = null;
+  function tick() { clickChest(); claimDrops(); keepAlive(); }
   ipcRenderer.on('cobalt-autoloot', function (_e, opt) {
     if (opt && opt.on) {
-      if (opt.lowRes) setLowRes();
-      if (!timer) { ipcRenderer.sendToHost('cobalt-twitch', { type: 'active' }); clickChest(); timer = setInterval(function () { clickChest(); claimDrops(); keepAlive(); }, 12000); }
-    } else if (timer) { clearInterval(timer); timer = null; }
+      if (opt.lowRes) lowResThisTabOnly();
+      if (!timer) {
+        ipcRenderer.sendToHost('cobalt-twitch', { type: 'active' });
+        tick();
+        timer = setInterval(tick, 8000);
+        // Reacción inmediata: al aparecer el cofre o un botón de drop, reclama enseguida (con debounce)
+        try {
+          let deb = null;
+          obs = new MutationObserver(function () { if (deb) return; deb = setTimeout(function () { deb = null; clickChest(); claimDrops(); }, 800); });
+          obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+        } catch (e) { /* nada */ }
+      }
+    } else {
+      if (timer) { clearInterval(timer); timer = null; }
+      if (obs) { obs.disconnect(); obs = null; }
+    }
   });
 }
 

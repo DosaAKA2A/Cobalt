@@ -176,6 +176,8 @@ function activateTab(id) {
   els.hub.classList.toggle('active', tab.kind === 'hub');
   tabs.forEach((t) => t.webview?.classList.toggle('active', t.id === id && t.kind === 'web'));
   if (tab.kind === 'hub') { els.urlbar.value = ''; focusHubSearch(); }
+  // Al elegir una pestaña que NO es de AutoLoot, el grupo se pliega de nuevo
+  if (!tab.autoLoot) lootExpanded = false;
   renderTabs(); syncNavUI(); applyResponsive(); updateRatMode();
   if (!els.mediaPanel.classList.contains('hidden')) collectMedia();
 }
@@ -194,9 +196,9 @@ function closeTab(id) {
   if (!tabs.length) { createTab(); return; }
   if (activeId === id) activateTab(tabs[Math.max(0, idx - 1)].id); else renderTabs();
 }
-function makeTabEl(tab) {
+function makeTabEl(tab, mini) {
   const el = document.createElement('div');
-  el.className = 'tab' + (tab.id === activeId ? ' active' : '') + (tab.asleep ? ' asleep' : ''); el.title = tab.url || 'Hub de Cobalt';
+  el.className = 'tab' + (tab.id === activeId ? ' active' : '') + (tab.asleep ? ' asleep' : '') + (mini ? ' mini loot-member' : ''); el.title = tab.url || 'Hub de Cobalt';
   const zzz = document.createElement('span'); zzz.className = 't-zzz'; zzz.innerHTML = window.icon('moon');
   const title = document.createElement('span'); title.className = 't-title'; title.textContent = tab.title;
   const close = document.createElement('button'); close.className = 't-close'; close.innerHTML = window.icon('x-mark');
@@ -221,56 +223,35 @@ function makeTabEl(tab) {
   el.addEventListener('auxclick', (e) => { if (e.button === 1) closeTab(tab.id); });
   return el;
 }
+let lootExpanded = false;
 function renderTabs() {
-  els.tabstrip.innerHTML = ''; closeLootFlyout();
-  // Las pestañas con AutoLoot se colapsan en UNA sola pestaña de grupo
+  els.tabstrip.innerHTML = '';
   const loots = tabs.filter((t) => t.autoLoot);
+  if (!loots.length) lootExpanded = false;
   let groupPlaced = false;
   for (const tab of tabs) {
     if (tab.autoLoot) {
-      if (!groupPlaced) { els.tabstrip.appendChild(makeLootGroupTab(loots)); groupPlaced = true; }
+      if (!groupPlaced) {
+        // Cabecera del grupo; si está expandido, a su derecha van las mini-pestañas
+        els.tabstrip.appendChild(makeLootGroupTab(loots));
+        if (lootExpanded) for (const lt of loots) els.tabstrip.appendChild(makeTabEl(lt, true));
+        groupPlaced = true;
+      }
       continue;
     }
     els.tabstrip.appendChild(makeTabEl(tab));
   }
 }
 function makeLootGroupTab(list) {
-  const active = list.some((t) => t.id === activeId);
+  const active = !lootExpanded && list.some((t) => t.id === activeId);
   const claims = list.reduce((n, t) => n + (t.twitchClaims || 0), 0);
   const el = document.createElement('div');
-  el.className = 'tab group-tab' + (active ? ' active' : '');
-  el.title = `AutoLoot: ${list.length} canal(es)` + (claims ? ` · ${claims} reclamados` : '') + '. Clic para desplegar.';
-  el.innerHTML = `<span class="gt-ic">${window.icon('gift')}</span><span class="t-title">AutoLoot · ${list.length}</span><span class="gt-caret">${window.icon('chevron-down')}</span>`;
-  el.addEventListener('click', (e) => { e.stopPropagation(); toggleLootFlyout(el, list); });
+  el.className = 'tab group-tab' + (active ? ' active' : '') + (lootExpanded ? ' open' : '');
+  el.title = `AutoLoot: ${list.length} canal(es)` + (claims ? ` · ${claims} reclamados` : '') + '. Clic para desplegar/plegar.';
+  el.innerHTML = `<span class="gt-ic">${window.icon('gift')}</span><span class="t-title">AutoLoot · ${list.length}</span><span class="gt-caret">${window.icon(lootExpanded ? 'chevron-right' : 'chevron-down')}</span>`;
+  el.addEventListener('click', (e) => { e.stopPropagation(); lootExpanded = !lootExpanded; renderTabs(); });
   return el;
 }
-let lootFlyout = null;
-function closeLootFlyout() { lootFlyout?.remove(); lootFlyout = null; }
-function toggleLootFlyout(anchor, list) {
-  if (lootFlyout) { closeLootFlyout(); return; }
-  const f = document.createElement('div'); f.className = 'loot-flyout';
-  for (const tab of list) {
-    const row = document.createElement('div'); row.className = 'lf-row' + (tab.id === activeId ? ' active' : '');
-    const name = document.createElement('span'); name.className = 'lf-name'; name.textContent = tab.title || 'Twitch';
-    name.addEventListener('click', () => { closeLootFlyout(); activateTab(tab.id); });
-    const mute = document.createElement('button'); mute.className = 'lf-btn' + (tab.muted ? ' on' : ''); mute.title = tab.muted ? 'Activar sonido' : 'Silenciar';
-    mute.innerHTML = window.icon(tab.muted ? 'speaker-x-mark' : 'speaker-wave');
-    mute.addEventListener('click', (e) => {
-      e.stopPropagation();
-      tab.muted = !tab.muted; try { tab.webview?.setAudioMuted(tab.muted); } catch {}
-      mute.classList.toggle('on', tab.muted); mute.title = tab.muted ? 'Activar sonido' : 'Silenciar';
-      mute.innerHTML = window.icon(tab.muted ? 'speaker-x-mark' : 'speaker-wave');
-    });
-    const out = document.createElement('button'); out.className = 'lf-btn'; out.title = 'Quitar de AutoLoot'; out.innerHTML = window.icon('x-mark');
-    out.addEventListener('click', (e) => { e.stopPropagation(); setAutoLoot(tab, false); });
-    row.append(name, mute, out); f.appendChild(row);
-  }
-  document.body.appendChild(f);
-  const r = anchor.getBoundingClientRect();
-  f.style.left = Math.max(6, r.left) + 'px'; f.style.top = (r.bottom + 4) + 'px';
-  lootFlyout = f;
-}
-window.addEventListener('mousedown', (e) => { if (lootFlyout && !lootFlyout.contains(e.target) && !e.target.closest('.group-tab')) closeLootFlyout(); });
 function toggleMute(tab) {
   tab.muted = !tab.muted;
   try { tab.webview?.setAudioMuted(tab.muted); } catch {}
