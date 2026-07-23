@@ -80,7 +80,20 @@ if (/(^|\.)twitch\.tv$/.test(location.hostname)) {
         });
       } catch (e) { /* nada */ }
     }
-    setInterval(function () { clickChest(); claimDrops(); }, 12000);
+    // Mantiene el stream vivo aunque la pestaña esté en segundo plano: reanuda el vídeo
+    // si se pausa y cierra el aviso "¿sigues ahí?", que si no cortaría el progreso de drops.
+    function keepAlive() {
+      try {
+        var v = document.querySelector('video');
+        if (v && v.paused) { try { v.play(); } catch (e) { /* nada */ } }
+        document.querySelectorAll('button').forEach(function (el) {
+          if (el.offsetParent === null) return;
+          var t = (el.textContent || '').trim().toLowerCase();
+          if (/(seguir viendo|continuar viendo|still watching|continue watching|sigo aqu|i'?m still here)/.test(t)) el.click();
+        });
+      } catch (e) { /* nada */ }
+    }
+    setInterval(function () { clickChest(); claimDrops(); keepAlive(); }, 12000);
     let moTimer = null;
     try { new MutationObserver(function () { if (moTimer) return; moTimer = setTimeout(function () { moTimer = null; clickChest(); }, 1500); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { /* nada */ }
   }).catch(function () { /* nada */ });

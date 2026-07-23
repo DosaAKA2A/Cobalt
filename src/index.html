@@ -39,15 +39,18 @@
       <button class="sb-btn accent" id="sb-claude" title="Claude" data-brand="claude"></button>
       <div class="sb-spacer"></div>
       <!-- Herramientas -->
+      <div class="sb-group-label">Herramientas</div>
       <button class="sb-btn" id="sb-rat" title="Rat Tool — descargar vídeo/audio" data-ico="rat"></button>
       <button class="sb-btn" id="sb-media" title="Recursos gráficos" data-ico="film"></button>
-      <button class="sb-btn" id="sb-downloads" title="Descargas" data-ico="arrow-down-tray"></button>
-      <div class="sb-sep"></div>
+      <button class="sb-btn" id="sb-loot" title="Loot — recompensas reclamadas" data-ico="gift"></button>
+      <button class="sb-btn" id="sb-res" title="Escalado de resolución" data-ico="computer-desktop"></button>
+      <div class="sb-div"></div>
       <!-- Funciones del navegador -->
       <button class="sb-btn" id="sb-history" title="Historial" data-ico="clock"></button>
       <button class="sb-btn" id="sb-bookmarks" title="Marcadores" data-ico="star"></button>
       <button class="sb-btn" id="sb-passwords" title="Contraseñas" data-ico="key"></button>
-      <button class="sb-btn" id="sb-res" title="Vista en otras resoluciones" data-ico="computer-desktop"></button>
+      <button class="sb-btn" id="sb-downloads" title="Descargas" data-ico="arrow-down-tray"></button>
+      <div class="sb-div"></div>
       <button class="sb-btn" id="sb-settings" title="Menú" data-ico="cog-6-tooth"></button>
     </aside>
 
@@ -128,6 +131,11 @@
             <div class="hp-title">Fondo del hub</div>
             <div id="bg-presets"></div>
             <label class="wp-custom">Imagen propia…<input type="file" id="wp-file" accept="image/*" hidden /></label>
+            <label class="wp-custom" id="bg-desktop-btn"><span data-ico="computer-desktop"></span> Escritorio (transparente)</label>
+            <div id="hub-alpha-row" class="hp-alpha hidden">
+              <span>Opacidad del tinte</span>
+              <input type="range" id="hub-alpha" min="0" max="90" value="35" />
+            </div>
           </div>
         </section>
 
@@ -235,6 +243,13 @@
     <div class="mp-head"><span>Descargas</span><span class="mp-tools"><button id="dl-clear" data-ico="trash" title="Limpiar completadas"></button><button id="dl-close" data-ico="x-mark" title="Cerrar"></button></span></div>
     <div class="dl-hint">Haz clic en una descarga para abrirla en Cobalt.</div>
     <div id="dl-list"></div>
+  </aside>
+
+  <!-- ===== Panel Loot (recompensas de auto-reclamo) ===== -->
+  <aside id="loot-panel" class="hidden side-panel">
+    <div class="mp-head"><span>Loot</span><span class="mp-tools"><button id="loot-clear" data-ico="trash" title="Vaciar registro"></button><button id="loot-close" data-ico="x-mark" title="Cerrar"></button></span></div>
+    <div class="dl-hint">Todo lo que el auto-reclamo de Twitch ha recogido: puntos del canal y drops.</div>
+    <div id="loot-list"></div>
   </aside>
 
   <!-- ===== Modales ===== -->

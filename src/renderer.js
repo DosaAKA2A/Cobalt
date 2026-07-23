@@ -17,7 +17,8 @@ const els = {};
   'splash', 'tabstrip', 'newtab-btn', 'nav-back', 'nav-fwd', 'nav-reload', 'nav-home', 'urlbar',
   'nav-shield', 'nav-star', 'nav-menu', 'menu-pop', 'bookmarks-bar', 'content', 'hub', 'widget-grid',
   'hub-edit', 'hub-customize', 'widget-palette', 'palette-list', 'customize-panel', 'bg-presets',
-  'wp-file', 'tile-styles', 'dial-modal', 'dial-name', 'dial-url', 'opt-powersaver', 'opt-gpu',
+  'wp-file', 'dial-modal', 'dial-name', 'dial-url', 'opt-powersaver', 'opt-gpu',
+  'sb-loot', 'loot-panel', 'loot-list', 'loot-close', 'loot-clear', 'bg-desktop-btn', 'hub-alpha', 'hub-alpha-row',
   'opt-agent', 'opt-smartsearch', 'opt-xsensitive', 'opt-passkeys', 'opt-twitch', 'shield-pop', 'adblock-toggle', 'adblock-count', 'adblock-site', 'adblock-list',
   'media-panel', 'mp-title', 'mp-grid', 'mp-all', 'sb-home', 'sb-sites', 'sb-claude', 'sb-rat',
   'sb-media', 'sb-downloads', 'sb-history', 'sb-bookmarks', 'sb-passwords', 'sb-res', 'sb-settings', 'res-pop', 'res-list',
@@ -93,10 +94,6 @@ function brandOf(url) { const h = hostOf(url); for (const dom in BRAND_BY_HOST) 
 /* ============ Favicons + color ============ */
 const tileCache = store.get('cobalt.tiles4', {});
 const saveTiles = () => store.set('cobalt.tiles4', tileCache);
-const clamp = (n) => Math.max(0, Math.min(255, Math.round(n)));
-const shade = ([r, g, b], f) => { const t = f < 0 ? 0 : 255, p = Math.abs(f); return `rgb(${clamp((t - r) * p + r)},${clamp((t - g) * p + g)},${clamp((t - b) * p + b)})`; };
-const rgba = ([r, g, b], a) => `rgba(${r},${g},${b},${a})`;
-const lum = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 function dominantColor(dataUrl) {
   return new Promise((resolve) => {
@@ -194,43 +191,62 @@ function closeTab(id) {
   if (!tabs.length) { createTab(); return; }
   if (activeId === id) activateTab(tabs[Math.max(0, idx - 1)].id); else renderTabs();
 }
+function makeTabEl(tab) {
+  const el = document.createElement('div');
+  el.className = 'tab' + (tab.id === activeId ? ' active' : '') + (tab.asleep ? ' asleep' : ''); el.title = tab.url || 'Hub de Cobalt';
+  const zzz = document.createElement('span'); zzz.className = 't-zzz'; zzz.innerHTML = window.icon('moon');
+  const title = document.createElement('span'); title.className = 't-title'; title.textContent = tab.title;
+  const close = document.createElement('button'); close.className = 't-close'; close.innerHTML = window.icon('x-mark');
+  close.addEventListener('click', (e) => { e.stopPropagation(); closeTab(tab.id); });
+  if (tab.kind === 'web') {
+    const fav = document.createElement('span'); fav.className = 't-fav';
+    if (tab.favicon) { const im = document.createElement('img'); im.src = tab.favicon; im.onerror = () => { fav.innerHTML = '<span class="t-dot"></span>'; }; fav.appendChild(im); }
+    else fav.innerHTML = '<span class="t-dot"></span>';
+    el.appendChild(fav);
+  }
+  el.append(zzz, title);
+  // Indicador de auto-reclamo de Twitch activo
+  if (tab.kind === 'web' && tab.twitchClaim) {
+    const cl = document.createElement('span'); cl.className = 't-claim';
+    cl.title = 'Auto-reclamo de Twitch activo' + (tab.twitchClaims ? ` · ${tab.twitchClaims} reclamados` : '');
+    cl.innerHTML = window.icon('rat'); el.appendChild(cl);
+  }
+  // Botón de silencio: aparece si la pestaña suena o está silenciada
+  if (tab.kind === 'web' && (tab.audible || tab.muted)) {
+    const spk = document.createElement('button'); spk.className = 't-mute' + (tab.muted ? ' muted' : '');
+    spk.title = tab.muted ? 'Activar sonido' : 'Silenciar pestaña';
+    spk.innerHTML = window.icon(tab.muted ? 'speaker-x-mark' : 'speaker-wave');
+    spk.addEventListener('click', (e) => { e.stopPropagation(); toggleMute(tab); });
+    el.appendChild(spk);
+  }
+  el.appendChild(close);
+  el.addEventListener('click', () => activateTab(tab.id));
+  el.addEventListener('auxclick', (e) => { if (e.button === 1) closeTab(tab.id); });
+  return el;
+}
 function renderTabs() {
   els.tabstrip.innerHTML = '';
+  // Agrupa los canales de Twitch con auto-reclamo cuando hay 2 o más
+  const twitch = tabs.filter((t) => t.twitchClaim);
+  const grouped = twitch.length >= 2 ? new Set(twitch.map((t) => t.id)) : null;
+  let groupPlaced = false;
   for (const tab of tabs) {
-    const el = document.createElement('div');
-    el.className = 'tab' + (tab.id === activeId ? ' active' : '') + (tab.asleep ? ' asleep' : ''); el.title = tab.url || 'Hub de Cobalt';
-    const zzz = document.createElement('span'); zzz.className = 't-zzz'; zzz.innerHTML = window.icon('moon');
-    const title = document.createElement('span'); title.className = 't-title'; title.textContent = tab.title;
-    const close = document.createElement('button'); close.className = 't-close'; close.innerHTML = window.icon('x-mark');
-    close.addEventListener('click', (e) => { e.stopPropagation(); closeTab(tab.id); });
-    // El hub (nueva pestaña) no muestra favicon
-    if (tab.kind === 'web') {
-      const fav = document.createElement('span'); fav.className = 't-fav';
-      if (tab.favicon) { const im = document.createElement('img'); im.src = tab.favicon; im.onerror = () => { fav.innerHTML = '<span class="t-dot"></span>'; }; fav.appendChild(im); }
-      else fav.innerHTML = '<span class="t-dot"></span>';
-      el.appendChild(fav);
+    if (grouped && grouped.has(tab.id)) {
+      if (!groupPlaced) { renderTwitchGroup(twitch); groupPlaced = true; }
+      continue;
     }
-    el.append(zzz, title);
-    // Indicador de auto-reclamo de Twitch activo (icono de rata que "vigila")
-    if (tab.kind === 'web' && tab.twitchClaim) {
-      const cl = document.createElement('span'); cl.className = 't-claim';
-      cl.title = 'Auto-reclamo de Twitch activo' + (tab.twitchClaims ? ` · ${tab.twitchClaims} reclamados` : '');
-      cl.innerHTML = window.icon('rat');
-      el.appendChild(cl);
-    }
-    // Botón de silencio: aparece si la pestaña suena o está silenciada
-    if (tab.kind === 'web' && (tab.audible || tab.muted)) {
-      const spk = document.createElement('button'); spk.className = 't-mute' + (tab.muted ? ' muted' : '');
-      spk.title = tab.muted ? 'Activar sonido' : 'Silenciar pestaña';
-      spk.innerHTML = window.icon(tab.muted ? 'speaker-x-mark' : 'speaker-wave');
-      spk.addEventListener('click', (e) => { e.stopPropagation(); toggleMute(tab); });
-      el.appendChild(spk);
-    }
-    el.appendChild(close);
-    el.addEventListener('click', () => activateTab(tab.id));
-    el.addEventListener('auxclick', (e) => { if (e.button === 1) closeTab(tab.id); });
-    els.tabstrip.appendChild(el);
+    els.tabstrip.appendChild(makeTabEl(tab));
   }
+}
+function renderTwitchGroup(list) {
+  const g = document.createElement('div'); g.className = 'tab-group';
+  const chip = document.createElement('div'); chip.className = 'tg-chip';
+  chip.innerHTML = window.icon('rat') + `<span>Twitch · ${list.length}</span>`;
+  chip.title = 'Canales con auto-reclamo activo. Clic para pasar al siguiente.';
+  chip.addEventListener('click', () => { const i = list.findIndex((t) => t.id === activeId); const next = list[(i + 1) % list.length]; if (next) activateTab(next.id); });
+  g.appendChild(chip);
+  for (const tab of list) g.appendChild(makeTabEl(tab));
+  els.tabstrip.appendChild(g);
 }
 function toggleMute(tab) {
   tab.muted = !tab.muted;
@@ -250,9 +266,14 @@ function syncNavUI() {
   els.navStar.innerHTML = window.icon(marked ? 'star-solid' : 'star'); els.navStar.classList.toggle('starred', !!marked);
 }
 setInterval(() => {
-  if (!settings.powerSaver) return; const now = Date.now();
-  for (const tab of tabs) { if (tab.kind !== 'web' || tab.id === activeId || tab.asleep || !tab.webview) continue; if (now - tab.lastActive > SLEEP_AFTER_MS) { try { tab.sleptUrl = tab.webview.getURL() || tab.url; tab.webview.src = 'about:blank'; tab.asleep = true; } catch {} } }
-  renderTabs();
+  if (!settings.powerSaver) return; const now = Date.now(); let changed = false;
+  for (const tab of tabs) {
+    // No dormir: la pestaña activa, las de auto-reclamo de Twitch ni las que reproducen audio
+    // (los drops solo cuentan si la pestaña sigue "viendo" el stream).
+    if (tab.kind !== 'web' || tab.id === activeId || tab.asleep || !tab.webview || tab.twitchClaim || tab.audible) continue;
+    if (now - tab.lastActive > SLEEP_AFTER_MS) { try { tab.sleptUrl = tab.webview.getURL() || tab.url; tab.webview.src = 'about:blank'; tab.asleep = true; changed = true; } catch {} }
+  }
+  if (changed) renderTabs();
 }, 30000);
 
 /* ============ Autocompletado ============ */
@@ -566,7 +587,27 @@ const BACKGROUNDS = [
   'radial-gradient(120% 80% at 50% -10%, #1c2740 0%, #0b0e15 62%)',    // Acero
   'linear-gradient(135deg, #2a1030 0%, #100a1e 45%, #0a0a0d 100%)'     // Aurora
 ];
-function applyBackground(v) { els.hub.style.setProperty('--hub-bg', v); store.set('cobalt.hubBg', v); document.querySelectorAll('.bg-thumb').forEach((t) => t.classList.toggle('sel', t.dataset.bg === v)); }
+// Activa/desactiva el fondo translúcido que deja ver el escritorio (acrílico Win11)
+function setHubTransparent(on) {
+  document.documentElement.classList.toggle('hub-transparent', on);
+  els.hubAlphaRow.classList.toggle('hidden', !on);
+  els.bgDesktopBtn.classList.toggle('sel', on);
+  try { window.cobalt.setTransparent(on); } catch { /* nada */ }
+}
+function applyBackground(v) {
+  const transparent = v === 'transparent';
+  setHubTransparent(transparent);
+  if (!transparent) els.hub.style.setProperty('--hub-bg', v);
+  store.set('cobalt.hubBg', v);
+  document.querySelectorAll('.bg-thumb').forEach((t) => t.classList.toggle('sel', t.dataset.bg === v && !transparent));
+}
+// Opacidad del tinte sobre el escritorio
+(function initHubAlpha() {
+  const a = store.get('cobalt.hubAlpha', 35);
+  els.hubAlpha.value = a; document.documentElement.style.setProperty('--hub-alpha', (a / 100).toFixed(2));
+  els.hubAlpha.addEventListener('input', () => { document.documentElement.style.setProperty('--hub-alpha', (els.hubAlpha.value / 100).toFixed(2)); store.set('cobalt.hubAlpha', +els.hubAlpha.value); });
+  els.bgDesktopBtn.addEventListener('click', () => applyBackground('transparent'));
+})();
 function renderBgPresets() {
   els.bgPresets.innerHTML = ''; const saved = store.get('cobalt.hubBg', BACKGROUNDS[0]);
   for (const bg of BACKGROUNDS) { const th = document.createElement('div'); th.className = 'bg-thumb' + (bg === saved ? ' sel' : ''); th.style.background = bg; th.dataset.bg = bg; th.addEventListener('click', () => applyBackground(bg)); els.bgPresets.appendChild(th); }
@@ -669,7 +710,40 @@ function toggleDownloads(force) { const open = force !== undefined ? force : els
 els.sbDownloads.addEventListener('click', () => toggleDownloads());
 $('#dl-close').addEventListener('click', () => toggleDownloads(false));
 $('#dl-clear').addEventListener('click', () => { window.cobalt.clearDownloads(); for (const [id, row] of dlRows) if (row.classList.contains('done') || row.classList.contains('error')) { row.remove(); dlRows.delete(id); dlMeta.delete(id); } });
-function closeRightPanels() { els.mediaPanel.classList.add('hidden'); els.sbMedia.classList.remove('open'); els.dlPanel.classList.add('hidden'); els.sbDownloads.classList.remove('open'); els.pwPanel.classList.add('hidden'); els.sbPasswords.classList.remove('open'); els.historyPanel.classList.add('hidden'); els.sbHistory.classList.remove('open'); }
+function closeRightPanels() { els.mediaPanel.classList.add('hidden'); els.sbMedia.classList.remove('open'); els.dlPanel.classList.add('hidden'); els.sbDownloads.classList.remove('open'); els.pwPanel.classList.add('hidden'); els.sbPasswords.classList.remove('open'); els.historyPanel.classList.add('hidden'); els.sbHistory.classList.remove('open'); els.lootPanel.classList.add('hidden'); els.sbLoot.classList.remove('open'); }
+
+/* ============ Loot: registro de recompensas del auto-reclamo ============ */
+let loot = store.get('cobalt.loot', []);
+function recordLoot(kind, channel) {
+  loot.unshift({ t: Date.now(), kind: kind === 'drop' ? 'drop' : 'points', channel: channel || '' });
+  if (loot.length > 500) loot = loot.slice(0, 500);
+  store.set('cobalt.loot', loot);
+  if (!els.lootPanel.classList.contains('hidden')) renderLoot();
+}
+function renderLoot() {
+  const pts = loot.filter((l) => l.kind === 'points').length, drops = loot.filter((l) => l.kind === 'drop').length;
+  els.lootList.innerHTML = '';
+  const sum = document.createElement('div'); sum.className = 'loot-sum';
+  sum.innerHTML = `<div class="loot-stat"><span class="ls-n">${pts}</span><span class="ls-l">Puntos</span></div><div class="loot-stat"><span class="ls-n">${drops}</span><span class="ls-l">Drops</span></div>`;
+  els.lootList.appendChild(sum);
+  if (!loot.length) { const e = document.createElement('div'); e.className = 'loot-empty'; e.textContent = 'Aún no se ha reclamado nada. Deja un canal de Twitch abierto con el auto-reclamo activo.'; els.lootList.appendChild(e); return; }
+  for (const l of loot.slice(0, 300)) {
+    const row = document.createElement('div'); row.className = 'loot-row';
+    const ic = document.createElement('span'); ic.className = 'loot-ic'; ic.innerHTML = window.icon(l.kind === 'drop' ? 'gift' : 'star');
+    const info = document.createElement('div'); info.className = 'loot-info';
+    const when = new Date(l.t).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    info.innerHTML = `<div class="loot-t">${l.kind === 'drop' ? 'Drop reclamado' : 'Punto del canal'}</div><div class="loot-u">${escapeHtml(l.channel || 'Twitch')} · ${when}</div>`;
+    row.append(ic, info); els.lootList.appendChild(row);
+  }
+}
+function toggleLoot(force) {
+  const open = force !== undefined ? force : els.lootPanel.classList.contains('hidden');
+  if (open) { closeRightPanels(); els.lootPanel.classList.remove('hidden'); els.sbLoot.classList.add('open'); renderLoot(); }
+  else { els.lootPanel.classList.add('hidden'); els.sbLoot.classList.remove('open'); }
+}
+els.sbLoot.addEventListener('click', () => toggleLoot());
+els.lootClose.addEventListener('click', () => toggleLoot(false));
+els.lootClear.addEventListener('click', () => { loot = []; store.set('cobalt.loot', loot); renderLoot(); toast('Registro de Loot vaciado'); });
 
 /* ============ Historial ============ */
 let histFilter = '';
@@ -1004,8 +1078,13 @@ async function onWebviewMessage(wv, e) {
   // Twitch: se atiende aunque la pestaña esté en segundo plano (ahí es donde se deja el stream)
   if (e.channel === 'cobalt-twitch') {
     const tab = tabs.find((t) => t.webview === wv); if (!tab) return;
+    const channel = hostOf(tab.url).replace(/^www\./, '') + (tab.url.split('twitch.tv/')[1] ? '/' + tab.url.split('twitch.tv/')[1].split(/[/?#]/)[0] : '');
     if (data.type === 'active') { tab.twitchClaim = true; renderTabs(); }
-    else if (data.type === 'claim') { tab.twitchClaims = data.count || ((tab.twitchClaims || 0) + 1); tab.twitchClaim = true; renderTabs(); toast(data.kind === 'drop' ? '🐀 Drop de Twitch reclamado' : `🐀 Punto de Twitch reclamado (${tab.twitchClaims})`); }
+    else if (data.type === 'claim') {
+      tab.twitchClaims = data.count || ((tab.twitchClaims || 0) + 1); tab.twitchClaim = true; renderTabs();
+      recordLoot(data.kind, channel);
+      toast(data.kind === 'drop' ? 'Drop de Twitch reclamado' : `Punto de Twitch reclamado (${tab.twitchClaims})`);
+    }
     return;
   }
   if (activeTab()?.webview !== wv) return; // el resto (contraseñas) solo en la pestaña activa
@@ -1054,12 +1133,12 @@ function showNextPerm() {
   }
   let host = req.origin; try { host = new URL(req.origin).hostname.replace(/^www\./, ''); } catch {}
   els.permText.innerHTML = `<b>${escapeHtml(host)}</b> quiere ${escapeHtml(what)}.`;
-  els.permRemember.querySelector('input').checked = true;
+  els.permRemember.checked = true;
   els.permBar.classList.remove('hidden');
 }
 function answerPerm(decision) {
   const req = permQueue.shift(); if (!req) return;
-  window.cobalt.permRespond(req.id, decision, els.permRemember.querySelector('input').checked);
+  window.cobalt.permRespond(req.id, decision, els.permRemember.checked);
   showNextPerm();
 }
 window.cobalt.onPermAsk((req) => { permQueue.push(req); if (permQueue.length === 1) showNextPerm(); });
@@ -1135,7 +1214,7 @@ window.cobalt.onOpenUrl((p) => { if (typeof p === 'string') createTab(p); else c
   const ab = await window.cobalt.adblockGet(); els.navShield.classList.toggle('off', !ab.enabled);
   if (IS_PRIVATE) { els.privateBadge.classList.remove('hidden'); els.privateBadge.innerHTML = window.icon('eye-slash') + '<span>Privado</span>'; }
   const savedW = store.get('cobalt.panelW', null); if (savedW) document.documentElement.style.setProperty('--panel-w', savedW);
-  els.hub.style.setProperty('--hub-bg', store.get('cobalt.hubBg', BACKGROUNDS[0]));
+  applyBackground(store.get('cobalt.hubBg', BACKGROUNDS[0]));
   window.cobalt.version().then((v) => { const el = document.getElementById('hub-version'); if (el) el.textContent = 'Cobalt v' + v; });
   renderSidebarSites(); renderBookmarksBar(); renderHub(); createTab();
   setTimeout(() => { els.splash.classList.add('gone'); if (els.hub.classList.contains('active')) focusHubSearch(); }, 1800);

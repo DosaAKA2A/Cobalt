@@ -63,6 +63,37 @@ button { font-family: inherit; }
 .tab .t-claim { display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex-shrink: 0; color: #b98cff; animation: claim-pulse 2s ease-in-out infinite; }
 .tab .t-claim svg { width: 13px; height: 13px; }
 @keyframes claim-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+/* Grupo de canales de Twitch en la barra de pestañas */
+.tab-group { display: flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid rgba(145,112,214,.35); border-radius: 10px; background: rgba(120,90,190,.08); }
+.tg-chip { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border-radius: 7px; color: #c4a6ff; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.tg-chip:hover { background: rgba(145,112,214,.16); }
+.tg-chip svg { width: 13px; height: 13px; }
+
+/* Panel Loot */
+#loot-list { flex: 1; overflow-y: auto; padding: 6px 10px 14px; }
+.loot-sum { display: flex; gap: 10px; margin: 4px 0 12px; }
+.loot-stat { flex: 1; background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px; padding: 12px; text-align: center; }
+.loot-stat .ls-n { display: block; font-size: 22px; font-weight: 700; color: var(--text); }
+.loot-stat .ls-l { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+.loot-empty { color: #5c5e64; font-size: 12.5px; line-height: 1.5; padding: 8px 4px; }
+.loot-row { display: flex; align-items: center; gap: 11px; padding: 9px 6px; border-radius: 8px; }
+.loot-row:hover { background: var(--bg-2); }
+.loot-ic { display: flex; color: #b98cff; flex-shrink: 0; }
+.loot-ic svg { width: 16px; height: 16px; }
+.loot-info { min-width: 0; }
+.loot-info .loot-t { font-size: 13px; }
+.loot-info .loot-u { font-size: 11.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Slider de opacidad para el fondo transparente */
+.hp-alpha { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--text-dim); }
+.hp-alpha input[type="range"] { width: 100%; accent-color: #9170d6; cursor: pointer; }
+.wp-custom.sel { border-style: solid; border-color: #9170d6; color: var(--text); }
+
+/* Fondo del hub transparente: deja ver el escritorio (acrílico de Windows) */
+.hub-transparent, .hub-transparent body { background: transparent !important; }
+.hub-transparent #content { background: transparent !important; }
+.hub-transparent #hub { background: transparent !important; }
+.hub-transparent #hub::before { background: rgba(16,16,20, var(--hub-alpha, .35)) !important; }
 /* Botón de silencio de pestaña */
 .tab .t-mute { border: none; background: transparent; color: var(--text-dim); cursor: pointer; border-radius: 5px; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .12s, color .12s; }
 .tab .t-mute svg { width: 13px; height: 13px; }
@@ -100,6 +131,9 @@ button { font-family: inherit; }
 .sb-btn.accent:hover { color: #d59b7f; background: #16161a; }
 .sb-sep { width: 22px; height: 1px; background: #1d1d21; margin: 4px 0; }
 .sb-spacer { flex: 1; }
+/* Divisor fino y elegante entre grupos del sidebar + etiqueta de grupo */
+.sb-div { width: 20px; height: 1px; margin: 7px 0; background: linear-gradient(90deg, transparent, #2c2c32 30%, #2c2c32 70%, transparent); }
+.sb-group-label { font-size: 8px; letter-spacing: 1.2px; text-transform: uppercase; color: #55565c; margin: 2px 0 1px; text-align: center; user-select: none; }
 #sb-sites { display: flex; flex-direction: column; gap: 6px; }
 .sb-site { width: 34px; height: 34px; border: none; border-radius: 9px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #8a8c93; font-size: 13px; font-weight: 700; transition: background .15s, color .15s; }
 .sb-site svg { width: 16px; height: 16px; }
@@ -479,7 +513,6 @@ button { font-family: inherit; }
 .bg-thumb.sel { border-color: #d9dadd; }
 .wp-custom { display: block; text-align: center; font-size: 12.5px; padding: 8px; border-radius: 8px; border: 1px dashed #3a3b41; color: var(--text-dim); cursor: pointer; transition: color .12s, border-color .12s; }
 .wp-custom:hover { color: var(--text); border-color: #55565c; }
-#tile-styles { display: flex; flex-direction: column; gap: 6px; }
 .ts-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-2); cursor: pointer; font-size: 12.5px; transition: border-color .12s; }
 .ts-item:hover { border-color: #3a3b41; }
 .ts-item.sel { border-color: var(--accent); }

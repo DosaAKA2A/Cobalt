@@ -57,8 +57,11 @@ const YT_ADSKIP = `(function(){
     try{
       var p=document.querySelector('.html5-video-player');
       var v=document.querySelector('video');
-      if(p&&p.classList.contains('ad-showing')&&v){ v.muted=true; if(isFinite(v.duration)&&v.duration>0){ v.currentTime=v.duration; } }
+      if(p&&p.classList.contains('ad-showing')&&v){ v.muted=true; if(isFinite(v.duration)&&v.duration>0){ try{v.currentTime=v.duration;}catch(e){} } }
       ['.ytp-ad-skip-button','.ytp-ad-skip-button-modern','.ytp-skip-ad-button','.ytp-ad-overlay-close-button'].forEach(function(s){ var b=document.querySelector(s); if(b) b.click(); });
+      // Cierra el aviso anti-adblock para que el vídeo siga reproduciéndose
+      var enf=document.querySelector('ytd-enforcement-message-view-model');
+      if(enf){ var dlg=enf.closest('tp-yt-paper-dialog'); if(dlg) dlg.remove(); else enf.remove(); document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach(function(b){ b.remove(); }); document.documentElement.style.overflow=''; if(v&&v.paused){ try{v.play();}catch(e){} } }
     }catch(e){}
   }
   setInterval(skip,300);
@@ -76,6 +79,23 @@ const X_REVEAL = `(function(){
   }
   setInterval(reveal,700);
   try{ new MutationObserver(reveal).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+})();`;
+// Twitch: oculta anuncios de banner/display y, durante un anuncio de vídeo, lo silencia
+// para reducir la molestia. Los anuncios incrustados en el stream NO se pueden quitar
+// sin un proxy del m3u8, así que esto es lo razonable sin romper la reproducción.
+const TWITCH_ADHIDE = `(function(){
+  if(window.__cobaltTwAd)return; window.__cobaltTwAd=1;
+  var s=document.createElement('style');
+  s.textContent='[data-a-target="video-ad-label"],[data-test-selector="sad-overlay"],.video-player__ad-info-container,[data-a-target="advertising-billboard"],div[aria-label="Advertisement"]{display:none!important}';
+  document.documentElement.appendChild(s);
+  function tick(){
+    try{
+      var ad=document.querySelector('[data-a-target="video-ad-countdown"],[data-a-target="video-ad-label"]');
+      var v=document.querySelector('video');
+      if(v){ if(ad){ v.__cobaltAd=true; v.muted=true; } else if(v.__cobaltAd){ v.__cobaltAd=false; v.muted=false; } }
+    }catch(e){}
+  }
+  setInterval(tick,1000);
 })();`;
 
 function loadSettings() {
@@ -185,7 +205,10 @@ function registerDownloadItem(item, sourceUrl) {
   return meta;
 }
 
-const YT_AD_PATHS = ['/pagead/', '/api/stats/ads', '/ptracking', '/get_midroll_info', '/youtubei/v1/player/ad_break'];
+// Solo anuncios/telemetría puros. NO se tocan rutas del reproductor
+// (/youtubei/v1/player, /get_midroll_info, videoplayback…): bloquearlas hacía
+// que el vídeo no cargara o disparaba el anti-adblock. El salto real es en cliente.
+const YT_AD_PATHS = ['/pagead/', '/api/stats/ads', '/ptracking'];
 
 function setupSession(ses) {
   ses.webRequest.onBeforeRequest((details, callback) => {
@@ -382,6 +405,9 @@ app.on('web-contents-created', (_event, contents) => {
       if (settings.xRevealSensitive && /(^|\.)(twitter\.com|x\.com)$/.test(host)) {
         contents.executeJavaScript(X_REVEAL, true).catch(() => {});
       }
+      if (settings.adblockEnabled && /(^|\.)twitch\.tv$/.test(host)) {
+        contents.executeJavaScript(TWITCH_ADHIDE, true).catch(() => {});
+      }
       // Twitch: el auto-reclamo vive ahora en webview-preload.js (puede avisar a la UI)
     });
   }
@@ -394,6 +420,13 @@ ipcMain.on('win:minimize', (e) => winOf(e)?.minimize());
 ipcMain.on('win:maximize', (e) => { const w = winOf(e); if (w) w.isMaximized() ? w.unmaximize() : w.maximize(); });
 ipcMain.on('win:close', (e) => winOf(e)?.close());
 ipcMain.on('win:new-private', () => createWindow(true));
+// Fondo translúcido (acrílico de Windows 11): revela el escritorio tras el hub.
+// Se activa solo cuando el usuario lo elige, así el rendimiento por defecto no cambia.
+ipcMain.on('win:transparent', (e, on) => {
+  const w = winOf(e); if (!w) return;
+  try { w.setBackgroundColor(on ? '#00000000' : '#0a0a0c'); } catch { /* nada */ }
+  try { w.setBackgroundMaterial(on ? 'acrylic' : 'none'); } catch { /* nada */ }
+});
 
 ipcMain.handle('settings:get', () => settings);
 ipcMain.handle('settings:set', (_e, patch) => { settings = { ...settings, ...patch }; saveSettings(settings); return settings; });
@@ -487,35 +520,86 @@ ipcMain.handle('tw:enabled', () => !!settings.twitchAutoClaim);
 ipcMain.handle('yt:download', (_e, opts) => ytDownload(opts));
 ipcMain.handle('yt:available', () => fs.existsSync(ytDlpPath()) && fs.existsSync(ffmpegPath()));
 
-// ---------- Importar marcadores de otros navegadores (Chromium) ----------
-const CHROMIUM_BROWSERS = {
-  chrome: { label: 'Chrome', parts: ['Google', 'Chrome'] },
-  brave: { label: 'Brave', parts: ['BraveSoftware', 'Brave-Browser'] },
-  edge: { label: 'Edge', parts: ['Microsoft', 'Edge'] },
-  opera: { label: 'Opera', parts: ['..', 'Roaming', 'Opera Software', 'Opera Stable'] }
+// ---------- Importar marcadores de otros navegadores ----------
+// Chromium guarda un JSON "Bookmarks"; Firefox comprime su backup en .jsonlz4 (LZ4 + cabecera Mozilla).
+const IMPORT_BROWSERS = {
+  chrome:  { label: 'Chrome',   type: 'chromium', base: 'LOCALAPPDATA', parts: ['Google', 'Chrome', 'User Data', 'Default', 'Bookmarks'] },
+  brave:   { label: 'Brave',    type: 'chromium', base: 'LOCALAPPDATA', parts: ['BraveSoftware', 'Brave-Browser', 'User Data', 'Default', 'Bookmarks'] },
+  edge:    { label: 'Edge',     type: 'chromium', base: 'LOCALAPPDATA', parts: ['Microsoft', 'Edge', 'User Data', 'Default', 'Bookmarks'] },
+  operagx: { label: 'Opera GX', type: 'chromium', base: 'APPDATA', parts: ['Opera Software', 'Opera GX Stable', 'Bookmarks'] },
+  firefox: { label: 'Firefox',  type: 'firefox' }
 };
-function chromiumBookmarksPath(key) {
-  const la = process.env.LOCALAPPDATA; const b = CHROMIUM_BROWSERS[key]; if (!la || !b) return null;
-  return path.join(la, ...b.parts, 'User Data', 'Default', 'Bookmarks');
+function importPath(b) {
+  if (!b) return null;
+  if (b.type === 'firefox') return firefoxLatestBackup();
+  const root = process.env[b.base]; if (!root) return null;
+  return path.join(root, ...b.parts);
 }
-function flattenChromiumBookmarks(node, out) {
+// Descompresor LZ4 en bloque (sin dependencias) para leer los backups de Firefox
+function lz4DecompressBlock(input, outLen) {
+  const out = Buffer.allocUnsafe(outLen); let ip = 0, op = 0;
+  while (ip < input.length) {
+    const token = input[ip++];
+    let litLen = token >> 4;
+    if (litLen === 15) { let b; do { b = input[ip++]; litLen += b; } while (b === 255); }
+    for (let i = 0; i < litLen; i++) out[op++] = input[ip++];
+    if (ip >= input.length) break;
+    const offset = input[ip++] | (input[ip++] << 8);
+    let matchLen = (token & 15) + 4;
+    if ((token & 15) === 15) { let b; do { b = input[ip++]; matchLen += b; } while (b === 255); }
+    let mp = op - offset;
+    for (let i = 0; i < matchLen; i++) out[op++] = out[mp++];
+  }
+  return out.subarray(0, op);
+}
+function decodeMozLz4(buf) {
+  if (buf.length < 12 || buf.toString('latin1', 0, 8) !== 'mozLz40\0') return null;
+  return lz4DecompressBlock(buf.subarray(12), buf.readUInt32LE(8));
+}
+function firefoxLatestBackup() {
+  const base = path.join(process.env.APPDATA || '', 'Mozilla', 'Firefox', 'Profiles');
+  if (!fs.existsSync(base)) return null;
+  let best = null, bestTime = 0;
+  for (const prof of fs.readdirSync(base)) {
+    const bb = path.join(base, prof, 'bookmarkbackups');
+    if (!fs.existsSync(bb)) continue;
+    for (const f of fs.readdirSync(bb)) {
+      if (!f.endsWith('.jsonlz4')) continue;
+      const full = path.join(bb, f);
+      try { const t = fs.statSync(full).mtimeMs; if (t > bestTime) { bestTime = t; best = full; } } catch { /* nada */ }
+    }
+  }
+  return best;
+}
+function flattenChromium(node, out) {
   if (!node) return;
   if (node.type === 'url' && node.url && /^https?:/.test(node.url)) out.push({ title: node.name || node.url, url: node.url });
-  if (Array.isArray(node.children)) node.children.forEach((c) => flattenChromiumBookmarks(c, out));
+  if (Array.isArray(node.children)) node.children.forEach((c) => flattenChromium(c, out));
+}
+function flattenFirefox(node, out) {
+  if (!node) return;
+  if (node.uri && /^https?:/.test(node.uri)) out.push({ title: node.title || node.uri, url: node.uri });
+  if (Array.isArray(node.children)) node.children.forEach((c) => flattenFirefox(c, out));
 }
 ipcMain.handle('import:available', () => {
   const avail = {};
-  Object.keys(CHROMIUM_BROWSERS).forEach((k) => { const p = chromiumBookmarksPath(k); avail[k] = { label: CHROMIUM_BROWSERS[k].label, present: !!(p && fs.existsSync(p)) }; });
+  Object.keys(IMPORT_BROWSERS).forEach((k) => { const p = importPath(IMPORT_BROWSERS[k]); avail[k] = { label: IMPORT_BROWSERS[k].label, present: !!(p && fs.existsSync(p)) }; });
   return avail;
 });
 ipcMain.handle('import:bookmarks', (_e, key) => {
   try {
-    const p = chromiumBookmarksPath(key);
+    const b = IMPORT_BROWSERS[key]; const p = importPath(b);
     if (!p || !fs.existsSync(p)) return { ok: false, error: 'no encontrado' };
-    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
     const out = [];
-    Object.values(data.roots || {}).forEach((root) => flattenChromiumBookmarks(root, out));
-    return { ok: true, items: out, label: CHROMIUM_BROWSERS[key].label };
+    if (b.type === 'firefox') {
+      const json = decodeMozLz4(fs.readFileSync(p));
+      if (!json) return { ok: false, error: 'backup ilegible' };
+      flattenFirefox(JSON.parse(json.toString('utf8')), out);
+    } else {
+      const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+      Object.values(data.roots || {}).forEach((root) => flattenChromium(root, out));
+    }
+    return { ok: true, items: out, label: b.label };
   } catch (e) { return { ok: false, error: e.message }; }
 });
 
