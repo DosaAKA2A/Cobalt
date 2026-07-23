@@ -1,8 +1,8 @@
 {
-  "name": "cobalt-browser",
-  "productName": "Cobalt",
+  "name": "naviri-browser",
+  "productName": "Naviri",
   "version": "1.0.16",
-  "description": "Cobalt — navegador ligero de Iris Studio. Motor Chromium, bajo consumo y aceleración por GPU.",
+  "description": "Naviri — navegador ligero de Iris Studio. Motor Chromium, bajo consumo y aceleración por GPU.",
   "author": "Iris Studio",
   "license": "MIT",
   "main": "src/main.js",
@@ -23,7 +23,7 @@
   },
   "build": {
     "appId": "com.estudiodeiris.cobalt",
-    "productName": "Cobalt",
+    "productName": "Naviri",
     "directories": {
       "output": "dist"
     },
@@ -65,7 +65,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Cobalt",
+      "shortcutName": "Naviri",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"

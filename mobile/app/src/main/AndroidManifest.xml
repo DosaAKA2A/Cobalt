@@ -12,7 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.Cobalt">
+        android:theme="@style/Theme.Naviri">
 
         <activity
             android:name=".MainActivity"

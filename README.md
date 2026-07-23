@@ -1,6 +1,6 @@
-# Cobalt
+# Naviri
 
-Cobalt por **Studio Iris** — navegador ligero sobre motor Chromium (Electron). Monocromático, de bajo consumo y con herramientas integradas.
+Naviri por **Studio Iris** — navegador ligero sobre motor Chromium (Electron). Monocromático, de bajo consumo y con herramientas integradas.
 
 ## Características
 
