@@ -228,17 +228,13 @@ function renderTabs() {
   els.tabstrip.innerHTML = '';
   const loots = tabs.filter((t) => t.autoLoot);
   if (!loots.length) lootExpanded = false;
-  let groupPlaced = false;
+  // El grupo AutoLoot siempre va primero, a la izquierda del resto de pestañas
+  if (loots.length) {
+    els.tabstrip.appendChild(makeLootGroupTab(loots));
+    if (lootExpanded) for (const lt of loots) els.tabstrip.appendChild(makeTabEl(lt, true));
+  }
   for (const tab of tabs) {
-    if (tab.autoLoot) {
-      if (!groupPlaced) {
-        // Cabecera del grupo; si está expandido, a su derecha van las mini-pestañas
-        els.tabstrip.appendChild(makeLootGroupTab(loots));
-        if (lootExpanded) for (const lt of loots) els.tabstrip.appendChild(makeTabEl(lt, true));
-        groupPlaced = true;
-      }
-      continue;
-    }
+    if (tab.autoLoot) continue;
     els.tabstrip.appendChild(makeTabEl(tab));
   }
 }
