@@ -26,7 +26,8 @@ jobs:
         run: |
           if [ -n "$KS_B64" ]; then
             mkdir -p "$HOME/.android-keys"
-            echo "$KS_B64" | base64 -d > "$HOME/.android-keys/cobalt-release.jks"
+            # tr elimina saltos y espacios por si el valor se pegó con la línea partida
+            echo "$KS_B64" | tr -d ' \t\r\n' | base64 -d > "$HOME/.android-keys/cobalt-release.jks"
             {
               echo "storeFile=$HOME/.android-keys/cobalt-release.jks"
               echo "storePassword=$KS_PASS"
